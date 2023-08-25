@@ -21,5 +21,26 @@ class CRUDCharityProject(CRUDBase):
         )
         return project.scalars().first()
 
+    async def get_projects_by_competion_rate(
+        self,
+        session: AsyncSession
+    ) -> list[dict[str, str]]:
+        projects = await session.execute(
+            select([CharityProject]).where(CharityProject.fully_invested == 1)
+        )
+        projects = projects.scalars().all()
+        projects_list = sorted(
+            [
+                {
+                    'name': project.name,
+                    'duration': project.close_date - project.create_date,
+                    'description': project.description
+                }
+                for project in projects
+            ],
+            key=lambda x: x['duration']
+        )
+        return projects_list
+
 
 charity_project_crud = CRUDCharityProject(CharityProject)
