@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime as dt
 
 from aiogoogle import Aiogoogle
@@ -7,9 +8,6 @@ TABLE_HEADER = (
     ['Топ проектов по скорости закрытия'],
     ['Название проекта', 'Время сбора', 'Описание'],
 )
-
-TABLE_MAX_ROWS = 100
-TABLE_MAX_COLUMNS = 3
 
 TABLE_PROPERTIES = dict(
     # Свойства документа
@@ -38,14 +36,15 @@ def title_with_time():
 
 async def spreadsheets_create(
     google_service: Aiogoogle,
-    rows: int = TABLE_MAX_ROWS,
-    columns: int = TABLE_MAX_COLUMNS,
+    rows: int = 100,
+    columns: int = 3,
 ) -> str:
     service = await google_service.discover('sheets', 'v4')
-    spreadsheet_body = TABLE_PROPERTIES
+    spreadsheet_body = deepcopy(TABLE_PROPERTIES)
     spreadsheet_body['properties']['title'] = title_with_time()
-    spreadsheet_body['sheets'][0]['properties']['gridProperties']['rowCount'] = rows        # noqa
-    spreadsheet_body['sheets'][0]['properties']['gridProperties']['columnCount'] = columns  # noqa
+    properties = spreadsheet_body['sheets'][0]['properties']['gridProperties']
+    properties['rowCount'] = rows
+    properties['columnCount'] = columns
     response = await google_service.as_service_account(
         service.spreadsheets.create(json=spreadsheet_body)
     )
