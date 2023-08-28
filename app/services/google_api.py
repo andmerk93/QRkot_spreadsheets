@@ -1,6 +1,8 @@
 from copy import deepcopy
 from datetime import datetime as dt
 
+from pydantic import ValidationError
+
 from aiogoogle import Aiogoogle
 
 
@@ -39,6 +41,7 @@ async def spreadsheets_create(
     rows: int = 100,
     columns: int = 3,
 ) -> str:
+    check_table_size(rows, columns)
     service = await google_service.discover('sheets', 'v4')
     spreadsheet_body = deepcopy(TABLE_PROPERTIES)
     spreadsheet_body['properties']['title'] = title_with_time()
@@ -99,6 +102,13 @@ def generate_table(projects):
     rows = len(table_values)
     columns = max(map(len, table_values))
     return table_values, rows, columns
+
+
+def check_table_size(rows: int, columns: int):
+    if columns > 18278 or rows * columns > 5000000:
+        raise ValidationError(
+            f'Невозможно создать таблицу размера {rows} x {columns}'
+        )
 
 
 async def spreadsheets_update_value(

@@ -1,4 +1,4 @@
-from aiogoogle import Aiogoogle, HTTPError
+from aiogoogle import Aiogoogle, AiogoogleError
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +14,6 @@ from app.services.google_api import (
     spreadsheets_create,
     spreadsheets_update_value
 )
-from app.api.validators import check_table_size
 
 router = APIRouter()
 
@@ -31,13 +30,12 @@ async def get_report(
     projects = await charity_project_crud.get_projects_by_completion_rate(
         session)
     table_values, rows, columns = generate_table(projects)
-    check_table_size(rows, columns)
     try:
         spreadsheet_id, spreadsheet_url = await spreadsheets_create(
             google_service, rows, columns
         )
-    except HTTPError:
-        raise HTTPException(500, 'Got troubles with google services')
+    except AiogoogleError as error:
+        raise HTTPException(500, error)
     await set_user_permissions(google_service, spreadsheet_id, settings.email)
     await spreadsheets_update_value(
         google_service, spreadsheet_id, table_values, rows, columns

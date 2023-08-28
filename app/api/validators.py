@@ -55,11 +55,3 @@ def check_full_amount_is_less_than_invested(
             status_code=HTTPStatus.BAD_REQUEST,
             detail='Сумма не может быть меньше внесённой!',
         )
-
-
-def check_table_size(rows: int, columns: int):
-    if columns > 18278 or rows * columns > 5000000:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_IMPLEMENTED,
-            detail='Невозможно создать google-таблицу такого размера',
-        )
