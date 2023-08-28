@@ -1,5 +1,6 @@
-from aiogoogle import Aiogoogle, AiogoogleError
+from aiogoogle import Aiogoogle
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_async_session
@@ -34,7 +35,7 @@ async def get_report(
         spreadsheet_id, spreadsheet_url = await spreadsheets_create(
             google_service, rows, columns
         )
-    except AiogoogleError as error:
+    except ValidationError as error:
         raise HTTPException(500, error)
     await set_user_permissions(google_service, spreadsheet_id, settings.email)
     await spreadsheets_update_value(

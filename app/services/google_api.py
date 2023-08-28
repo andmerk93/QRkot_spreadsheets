@@ -107,7 +107,9 @@ def generate_table(projects):
 def check_table_size(rows: int, columns: int):
     if columns > 18278 or rows * columns > 5000000:
         raise ValidationError(
-            f'Невозможно создать таблицу размера {rows} x {columns}'
+            f'Невозможно создать таблицу размера {rows} x {columns}. '
+            'Google-таблицы могут содержать не больше 18278 столбцов '
+            'и не больше 5000000 ячеек суммарно '
         )
 
 
