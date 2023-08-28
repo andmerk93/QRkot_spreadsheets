@@ -3,36 +3,53 @@ from datetime import datetime as dt
 from aiogoogle import Aiogoogle
 
 
-def now_time():
-    return dt.now().strftime('%Y/%m/%d %H:%M:%S')
+TABLE_HEADER = (
+    ['Топ проектов по скорости закрытия'],
+    ['Название проекта', 'Время сбора', 'Описание'],
+)
 
+TABLE_MAX_ROWS = 100
+TABLE_MAX_COLUMNS = 3
 
-async def spreadsheets_create(google_service: Aiogoogle) -> str:
-    service = await google_service.discover('sheets', 'v4')
-    spreadsheet_body = dict(
-        # Свойства документа
+TABLE_PROPERTIES = dict(
+    # Свойства документа
+    properties=dict(
+        title='Актуальный отчёт',
+        locale='ru_RU'
+    ),
+    # Свойства листов документа
+    sheets=[dict(
         properties=dict(
-            title=f'Отчёт от {now_time()}',
-            locale='ru_RU'
-        ),
-        # Свойства листов документа
-        sheets=[dict(
-            properties=dict(
-                sheetType='GRID',
-                sheetId=0,
-                title='Sheet',
-                gridProperties=dict(
-                    rowCount=100,
-                    columnCount=3
-                )
+            sheetType='GRID',
+            sheetId=0,
+            title='Sheet',
+            gridProperties=dict(
+                rowCount=100,
+                columnCount=3
             )
-        )]
-    )
+        )
+    )]
+)
+
+
+def title_with_time():
+    return f'Отчёт от {dt.now().strftime("%Y/%m/%d %H:%M:%S")}'
+
+
+async def spreadsheets_create(
+    google_service: Aiogoogle,
+    rows: int = TABLE_MAX_ROWS,
+    columns: int = TABLE_MAX_COLUMNS,
+) -> str:
+    service = await google_service.discover('sheets', 'v4')
+    spreadsheet_body = TABLE_PROPERTIES
+    spreadsheet_body['properties']['title'] = title_with_time()
+    spreadsheet_body['sheets'][0]['properties']['gridProperties']['rowCount'] = rows        # noqa
+    spreadsheet_body['sheets'][0]['properties']['gridProperties']['columnCount'] = columns  # noqa
     response = await google_service.as_service_account(
         service.spreadsheets.create(json=spreadsheet_body)
     )
-    spread_sheet_id = response['spreadsheetId']
-    return spread_sheet_id
+    return response['spreadsheetId'], response['spreadsheetUrl']
 
 
 async def set_user_permissions(
@@ -54,30 +71,53 @@ async def set_user_permissions(
         ))
 
 
+def sort_projects_by_duration(projects):
+    return sorted(
+        [
+            (
+                project.name,
+                (project.close_date - project.create_date),
+                project.description,
+            )
+            for project in projects
+        ],
+        key=lambda x: x[1]  # sort by duration
+    )
+
+
+def stringify_duration(input_tuple):
+    name, duration, description = input_tuple
+    return name, str(duration), description
+
+
+def generate_table(projects):
+    projects = sort_projects_by_duration(projects)
+    table_values = [
+        [title_with_time()],
+        *TABLE_HEADER,
+        *map(stringify_duration, projects)
+    ]
+    rows = len(table_values)
+    columns = max(map(len, table_values))
+    return table_values, rows, columns
+
+
 async def spreadsheets_update_value(
         google_service: Aiogoogle,
         spreadsheet_id: str,
-        projects: list,
+        table_values: list,
+        rows: int,
+        columns: int,
 ) -> None:
     service = await google_service.discover('sheets', 'v4')
-    table_values = [
-        ['Отчёт от', now_time()],
-        ['Топ проектов по скорости закрытия'],
-        ['Название проекта', 'Время сбора', 'Описание'],
-        *[
-            [project['name'], str(project['duration']), project['description']]
-            for project in projects
-        ]
-    ]
-    request_body = dict(
-        majorDimension='ROWS',
-        values=table_values
-    )
     await google_service.as_service_account(
         service.spreadsheets.values.update(
             spreadsheetId=spreadsheet_id,
-            range=f'R1C1:R{len(table_values)}C3',
+            range=f'R1C1:R{rows}C{columns}',
             valueInputOption='USER_ENTERED',
-            json=request_body
+            json=dict(
+                majorDimension='ROWS',
+                values=table_values
+            )
         )
     )

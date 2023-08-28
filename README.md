@@ -77,6 +77,17 @@ DATABASE_URL=sqlite+aiosqlite:///./fastapi.db
 SECRET=secret
 FIRST_SUPERUSER_EMAIL=user@example.com
 FIRST_SUPERUSER_PASSWORD=string
+type=service_account
+project_id=lucid-totality-3****5
+private_key_id=511**************335d
+private_key="private_key_here"
+client_email=service-account@google-project.iam.gserviceaccount.com
+client_id=11**************9379
+auth_uri=https://accounts.google.com/o/oauth2/auth
+token_uri=https://oauth2.googleapis.com/token
+auth_provider_x509_cert_url=https://www.googleapis.com/oauth2/v1/certs
+client_x509_cert_url=url-to-cert
+email=your-acc@gmail.com
 ```
 
 ## Требования:
@@ -85,6 +96,7 @@ FIRST_SUPERUSER_PASSWORD=string
  - fastapi-users 10
  - SQLAlchemy 1.4
  - alembic 1.7
+ - aiogoogle 4.2.0
  - и их зависимости (описано в requirements.txt)
  
 ## Установка и запуск:
